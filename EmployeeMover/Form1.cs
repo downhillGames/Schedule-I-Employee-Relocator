@@ -1,20 +1,21 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Newtonsoft.Json;
 
 namespace EmployeeMover
 {
     public partial class EmployeeMover : Form
     {
+        private string Username => listBoxUsers.SelectedItem?.ToString();
+        private string SaveId => listBoxSaves.SelectedItem?.ToString();
+        private string SelectedBusinessEntry => listBoxBusinesses.SelectedItem?.ToString();
+        private string EmployeeFolder => listBoxEmployees.SelectedItem?.ToString();
+
         public EmployeeMover()
         {
             InitializeComponent();
@@ -27,21 +28,13 @@ namespace EmployeeMover
             btnSendToMotel.Click += (s, e) => MoveEmployeeTo("Motel room");
         }
 
-        private void radioButton1_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void Form1_Load(object sender, EventArgs e)
         {
-
-
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
 
             // Get the full resource name
             var assembly = Assembly.GetExecutingAssembly();
-            string resourceName = assembly.GetManifestResourceNames()
-                                          .FirstOrDefault(name => name.EndsWith("Image1.png"));
+            string resourceName = assembly.GetManifestResourceNames().FirstOrDefault(name => name.EndsWith("Image1.png"));
 
             if (resourceName != null)
             {
@@ -55,16 +48,15 @@ namespace EmployeeMover
                 MessageBox.Show("Embedded image not found.");
             }
 
-
-            string usersFolder = @"C:\Users";
+            const string usersFolder = @"C:\Users";
             try
             {
-                string[] userDirectories = System.IO.Directory.GetDirectories(usersFolder);
+                string[] userDirectories = Directory.GetDirectories(usersFolder);
 
                 foreach (string dir in userDirectories)
                 {
                     // Just get the folder name (username)
-                    string username = System.IO.Path.GetFileName(dir);
+                    string username = Path.GetFileName(dir);
                     listBoxUsers.Items.Add(username);
                 }
             }
@@ -79,23 +71,25 @@ namespace EmployeeMover
             listBoxSaves.Items.Clear();
             listBoxBusinesses.Items.Clear();
 
-            if (listBoxUsers.SelectedItem != null)
+            if (string.IsNullOrEmpty(Username))
             {
-                string username = listBoxUsers.SelectedItem.ToString();
-                string saveRootPath = $@"C:\Users\{username}\AppData\LocalLow\TVGS\Schedule I\Saves";
+                MessageBox.Show("Please select a user first.");
+                return;
+            }
 
-                if (Directory.Exists(saveRootPath))
+            string saveRootPath = $@"C:\Users\{Username}\AppData\LocalLow\TVGS\Schedule I\Saves";
+
+            if (Directory.Exists(saveRootPath))
+            {
+                string[] saveFolders = Directory.GetDirectories(saveRootPath);
+                foreach (string folder in saveFolders)
                 {
-                    string[] saveFolders = Directory.GetDirectories(saveRootPath);
-                    foreach (string folder in saveFolders)
-                    {
-                        listBoxSaves.Items.Add(Path.GetFileName(folder));
-                    }
+                    listBoxSaves.Items.Add(Path.GetFileName(folder));
                 }
-                else
-                {
-                    MessageBox.Show("No saves found for this user.");
-                }
+            }
+            else
+            {
+                MessageBox.Show("No saves found for this user.");
             }
         }
 
@@ -104,42 +98,42 @@ namespace EmployeeMover
             listBoxBusinesses.Items.Clear();
             listBoxEmployees.Items.Clear(); // optional: reset employee view too
 
-            if (listBoxUsers.SelectedItem != null && listBoxSaves.SelectedItem != null)
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(SaveId))
             {
-                string username = listBoxUsers.SelectedItem.ToString();
-                string saveId = listBoxSaves.SelectedItem.ToString();
+                MessageBox.Show("Please select a user and save first.");
+                return;
+            }
 
-                string basePath = $@"C:\Users\{username}\AppData\LocalLow\TVGS\Schedule I\Saves\{saveId}\SaveGame_1";
+            string basePath = $@"C:\Users\{Username}\AppData\LocalLow\TVGS\Schedule I\Saves\{SaveId}\SaveGame_1";
 
-                string propertiesPath = Path.Combine(basePath, "Properties");
-                string businessesPath = Path.Combine(basePath, "Businesses");
+            string propertiesPath = Path.Combine(basePath, "Properties");
+            string businessesPath = Path.Combine(basePath, "Businesses");
 
-                // Load from Properties
-                if (Directory.Exists(propertiesPath))
+            // Load from Properties
+            if (Directory.Exists(propertiesPath))
+            {
+                string[] propertyFolders = Directory.GetDirectories(propertiesPath);
+                foreach (string folder in propertyFolders)
                 {
-                    string[] propertyFolders = Directory.GetDirectories(propertiesPath);
-                    foreach (string folder in propertyFolders)
-                    {
-                        string name = Path.GetFileName(folder);
-                        listBoxBusinesses.Items.Add(name + " (Properties)");
-                    }
+                    string name = Path.GetFileName(folder);
+                    listBoxBusinesses.Items.Add(name + " (Properties)");
                 }
+            }
 
-                // Load from Businesses
-                if (Directory.Exists(businessesPath))
+            // Load from Businesses
+            if (Directory.Exists(businessesPath))
+            {
+                string[] businessFolders = Directory.GetDirectories(businessesPath);
+                foreach (string folder in businessFolders)
                 {
-                    string[] businessFolders = Directory.GetDirectories(businessesPath);
-                    foreach (string folder in businessFolders)
-                    {
-                        string name = Path.GetFileName(folder);
-                        listBoxBusinesses.Items.Add(name + " (Businesses)");
-                    }
+                    string name = Path.GetFileName(folder);
+                    listBoxBusinesses.Items.Add(name + " (Businesses)");
                 }
+            }
 
-                if (listBoxBusinesses.Items.Count == 0)
-                {
-                    MessageBox.Show("No properties or businesses found.");
-                }
+            if (listBoxBusinesses.Items.Count == 0)
+            {
+                MessageBox.Show("No properties or businesses found.");
             }
         }
 
@@ -147,77 +141,66 @@ namespace EmployeeMover
         {
             listBoxEmployees.Items.Clear();
 
-            if (listBoxUsers.SelectedItem != null &&
-                listBoxSaves.SelectedItem != null &&
-                listBoxBusinesses.SelectedItem != null)
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(SaveId) || string.IsNullOrEmpty(SelectedBusinessEntry))
             {
-                string username = listBoxUsers.SelectedItem.ToString();
-                string saveId = listBoxSaves.SelectedItem.ToString();
-                string selectedBusinessEntry = listBoxBusinesses.SelectedItem.ToString();
+                MessageBox.Show("Please select a user, save and business first.");
+                return;
+            }
 
-                // Determine source and actual business name
-                string businessType = "";
-                string businessName = "";
+            // Determine source and actual business name
+            string businessType;
+            string businessName;
 
-                if (selectedBusinessEntry.EndsWith(" (Properties)"))
-                {
-                    businessType = "Properties";
-                    businessName = selectedBusinessEntry.Replace(" (Properties)", "");
-                }
-                else if (selectedBusinessEntry.EndsWith(" (Businesses)"))
-                {
-                    businessType = "Businesses";
-                    businessName = selectedBusinessEntry.Replace(" (Businesses)", "");
-                }
-                else
-                {
-                    MessageBox.Show("Unknown business entry format.");
-                    return;
-                }
+            if (SelectedBusinessEntry.EndsWith(" (Properties)"))
+            {
+                businessType = "Properties";
+                businessName = SelectedBusinessEntry.Replace(" (Properties)", "");
+            }
+            else if (SelectedBusinessEntry.EndsWith(" (Businesses)"))
+            {
+                businessType = "Businesses";
+                businessName = SelectedBusinessEntry.Replace(" (Businesses)", "");
+            }
+            else
+            {
+                MessageBox.Show("Unknown business entry format.");
+                return;
+            }
 
-                string basePath = $@"C:\Users\{username}\AppData\LocalLow\TVGS\Schedule I\Saves\{saveId}\SaveGame_1";
-                string finalPath = Path.Combine(basePath, businessType, businessName, "Employees");
+            string basePath = $@"C:\Users\{Username}\AppData\LocalLow\TVGS\Schedule I\Saves\{SaveId}\SaveGame_1";
+            string finalPath = Path.Combine(basePath, businessType, businessName, "Employees");
 
-                if (Directory.Exists(finalPath))
+            if (Directory.Exists(finalPath))
+            {
+                string[] employeeFolders = Directory.GetDirectories(finalPath);
+                foreach (string folder in employeeFolders)
                 {
-                    string[] employeeFolders = Directory.GetDirectories(finalPath);
-                    foreach (string folder in employeeFolders)
-                    {
-                        listBoxEmployees.Items.Add(Path.GetFileName(folder));
-                    }
+                    listBoxEmployees.Items.Add(Path.GetFileName(folder));
                 }
-                else
-                {
-                    MessageBox.Show("No Employees folder found in this business.");
-                }
+            }
+            else
+            {
+                MessageBox.Show("No Employees folder found in this business.");
             }
         }
 
         private void MoveEmployeeTo(string targetBusinessDisplayName)
         {
-            if (listBoxUsers.SelectedItem == null ||
-                listBoxSaves.SelectedItem == null ||
-                listBoxBusinesses.SelectedItem == null ||
-                listBoxEmployees.SelectedItem == null)
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(SaveId) || string.IsNullOrEmpty(SelectedBusinessEntry) || string.IsNullOrEmpty(EmployeeFolder))
             {
                 MessageBox.Show("Please select a user, save, business, and employee first.");
                 return;
             }
 
-            string username = listBoxUsers.SelectedItem.ToString();
-            string saveId = listBoxSaves.SelectedItem.ToString();
-            string currentBusinessDisplay = listBoxBusinesses.SelectedItem.ToString();
-            string employeeFolder = listBoxEmployees.SelectedItem.ToString();
-
             // 🔁 Map full display names to internal codes (used in JSON)
             var businessCodeMap = new Dictionary<string, string>
-    {
-        { "Bungalow", "bungalow" },
-        { "Docks Warehouse", "dockswarehouse" },
-        { "Sweatshop", "sweatshop" },
-        { "Barn", "barn" },
-        { "Motel room", "motel" }
-    };
+            {
+                { "Bungalow", "bungalow" },
+                { "Docks Warehouse", "dockswarehouse" },
+                { "Sweatshop", "sweatshop" },
+                { "Barn", "barn" },
+                { "Motel room", "motel" }
+            };
 
             if (!businessCodeMap.ContainsKey(targetBusinessDisplayName))
             {
@@ -229,18 +212,18 @@ namespace EmployeeMover
             string targetBusinessCode = businessCodeMap[targetBusinessDisplayName]; // Used for JSON
 
             // 🔎 Parse source business
-            string currentBusinessType = "";
-            string currentBusinessFolderName = "";
+            string currentBusinessType;
+            string currentBusinessFolderName;
 
-            if (currentBusinessDisplay.EndsWith(" (Properties)"))
+            if (SelectedBusinessEntry.EndsWith(" (Properties)"))
             {
                 currentBusinessType = "Properties";
-                currentBusinessFolderName = currentBusinessDisplay.Replace(" (Properties)", "");
+                currentBusinessFolderName = SelectedBusinessEntry.Replace(" (Properties)", "");
             }
-            else if (currentBusinessDisplay.EndsWith(" (Businesses)"))
+            else if (SelectedBusinessEntry.EndsWith(" (Businesses)"))
             {
                 currentBusinessType = "Businesses";
-                currentBusinessFolderName = currentBusinessDisplay.Replace(" (Businesses)", "");
+                currentBusinessFolderName = SelectedBusinessEntry.Replace(" (Businesses)", "");
             }
             else
             {
@@ -248,10 +231,10 @@ namespace EmployeeMover
                 return;
             }
 
-            string basePath = $@"C:\Users\{username}\AppData\LocalLow\TVGS\Schedule I\Saves\{saveId}\SaveGame_1";
+            string basePath = $@"C:\Users\{Username}\AppData\LocalLow\TVGS\Schedule I\Saves\{SaveId}\SaveGame_1";
 
-            string sourcePath = Path.Combine(basePath, currentBusinessType, currentBusinessFolderName, "Employees", employeeFolder);
-            string destinationPath = Path.Combine(basePath, "Properties", targetBusinessFolderName, "Employees", employeeFolder);
+            string sourcePath = Path.Combine(basePath, currentBusinessType, currentBusinessFolderName, "Employees", EmployeeFolder);
+            string destinationPath = Path.Combine(basePath, "Properties", targetBusinessFolderName, "Employees", EmployeeFolder);
             string npcJsonPath = Path.Combine(destinationPath, "NPC.json");
 
             try
@@ -265,6 +248,12 @@ namespace EmployeeMover
                 if (!Directory.Exists(Path.Combine(basePath, "Properties", targetBusinessFolderName, "Employees")))
                 {
                     MessageBox.Show($"Target property '{targetBusinessFolderName}' doesn't exist or has no Employees folder.");
+                    return;
+                }
+
+                if (sourcePath == destinationPath)
+                {
+                    MessageBox.Show($"Cannot move Employee {EmployeeFolder} to the same property");
                     return;
                 }
 
@@ -309,59 +298,13 @@ namespace EmployeeMover
                     File.WriteAllText(npcJsonPath, updatedJson);
                 }
 
-                MessageBox.Show($"Moved {employeeFolder} to {targetBusinessDisplayName}!");
+                MessageBox.Show($"Moved {EmployeeFolder} to {targetBusinessDisplayName}!");
                 listBoxBusinesses_SelectedIndexChanged(null, null); // Refresh employees
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error moving employee: " + ex.Message);
             }
-        }
-
-
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label4_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void pictureBox1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void btnSendToSweatshop_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void btnSendToBungalo_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void pictureBox1_Click_1(object sender, EventArgs e)
-        {
-
-        }
-
-        private void pictureBox1_Click_2(object sender, EventArgs e)
-        {
-
         }
     }
 }
