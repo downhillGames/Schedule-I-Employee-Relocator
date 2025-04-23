@@ -62,7 +62,7 @@ namespace EmployeeMover
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading users: " + ex.Message);
+                MessageBox.Show($"Error loading users: {ex.Message}");
             }
         }
 
@@ -116,7 +116,7 @@ namespace EmployeeMover
                 foreach (string folder in propertyFolders)
                 {
                     string name = Path.GetFileName(folder);
-                    listBoxBusinesses.Items.Add(name + " (Properties)");
+                    listBoxBusinesses.Items.Add($"{name} (Properties)");
                 }
             }
 
@@ -127,7 +127,7 @@ namespace EmployeeMover
                 foreach (string folder in businessFolders)
                 {
                     string name = Path.GetFileName(folder);
-                    listBoxBusinesses.Items.Add(name + " (Businesses)");
+                    listBoxBusinesses.Items.Add($"{name} (Businesses)");
                 }
             }
 
@@ -303,7 +303,7 @@ namespace EmployeeMover
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error moving employee: " + ex.Message);
+                MessageBox.Show($"Error moving employee: {ex.Message}");
             }
         }
     }
